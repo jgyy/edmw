@@ -1,0 +1,297 @@
+window.dataLayer = window.dataLayer || [];
+
+function gtmSendEvent(eventLayer) {
+	if (typeof(window.dataLayer) == 'undefined') return;
+	var lotame_id = '';
+	var emarsys_id = '';
+	var hwzurl = window.location.href;
+	var hwztitle = document.title.replace(' - HardwareZone Singapore', '');
+	var validkeys = ['content_category','content_level_1','content_level_2','content_level_3','content_level_4','content_type','product_name','product_brand','product_category','content_author','article_keyword','product_keyword','page_name','pagination','content_publication_date','content_url','video_account_id','video_id','video_title','video_tags','video_duration','video_category','video_source','video_language','video_auto_played','video_published_date','adblocker_status','container_id','container_version','render_type','no_of_search_results','locale','recommended_article_ids','search_keyword','promotion_code','gift_code','subscriber_promotion','from','client_id','user_id_h','user_id_s','lotame_id','emarsys_id','visitor_category_s','visitor_category_h','product_family','advertising_id','firebase_instance_id','product_variant','ux_element_name','ux_element_type','search_category','subscription_duration','subscription_option'];
+	var newLayer = {
+		'content_category':'free',
+		'content_type':'index',// index / listing / article / video / photo / forum / post / thread / price guides / product
+		'page_name':'Homepage',
+		'content_url':hwzurl,
+		//'adblocker_status':(typeof(hwzAdTesting)!='string'?'enabled':'disabled'),//do from HM
+		//'container_id':'GTM-N58WWMC',//do from HM
+		//'container_version':'1',//do from HM
+		'render_type':'web',
+		'visitor_category_s':'anonymous',
+		'visitor_category_h':'anonymous',
+		'product_family':'HardwareZone',
+		'locale':'en'
+	};
+	if ('gtm' in window.HWZ) {
+		for(var sKey in HWZ.gtm) {
+			if (typeof(HWZ.gtm[sKey]) != 'string' || validkeys.indexOf(sKey) < 0) continue;
+			newLayer[sKey] = HWZ.gtm[sKey];
+		}
+	}
+	if (!!eventLayer) {
+		for(var sKey in eventLayer) {
+			if (typeof(eventLayer[sKey]) != 'string') continue;
+			newLayer[sKey] = eventLayer[sKey];
+		}
+	}
+
+	if (!!window.ccauds && !!ccauds.Profile && !!ccauds.Profile.pid) {
+		newLayer['lotame_id'] = ccauds.Profile.pid;
+	}
+
+	//console.log('gtm ' + ('event' in newLayer ? newLayer.event : 'pageview') + ':', newLayer);
+	window.dataLayer.push(newLayer);
+};
+
+function hwz_ga(sCommand, sType, sCategory, sAction, sLabel, oOther) {
+	if (['send'].indexOf(sCommand) < 0 || ['event','pageview','virtual_pageview'].indexOf(sType) < 0) return;
+	var validkeys = ['content_category','content_level_1','content_level_2','content_level_3','content_level_4','content_type','product_name','product_brand','product_category','content_author','article_keyword','product_keyword','page_name','pagination','content_publication_date','content_url','video_account_id','video_id','video_title','video_tags','video_duration','video_category','video_source','video_language','video_auto_played','video_published_date','adblocker_status','container_id','container_version','render_type','no_of_search_results','locale','recommended_article_ids','search_keyword','promotion_code','gift_code','subscriber_promotion','from','client_id','user_id_h','user_id_s','lotame_id','emarsys_id','visitor_category_s','visitor_category_h','product_family','advertising_id','firebase_instance_id','product_variant','ux_element_name','ux_element_type','search_category','subscription_duration','subscription_option'];
+	var data = {};
+	if (sType == 'event') {
+		if (typeof(sCategory) != 'string' || typeof(sAction) != 'string' || typeof(sLabel) != 'string') return;
+		data['event'] = 'hm_push_event';
+		if (['Content-Conversion','Content-Engagement','Product-Conversion','Product-Core'].indexOf(sCategory) > -1) {
+			data['event_category'] = sCategory;
+			data['event_action'] = sAction;
+			data['event_label'] = sLabel;
+			if (typeof(oOther) == 'object' && 'data' in oOther) {
+				for(datakey in oOther.data) {
+					if (validkeys.indexOf(datakey) < 0) continue;
+					data[datakey] = oOther.data[datakey];
+				}
+			}
+		} else {
+			var oSection = {}, sSectionName = '', sSectionTitle = '', sArticleName = '';
+			var nPosition = (typeof(oOther) == 'object' && ('position' in oOther) ? ~~oOther.position : 0);
+			data['event_category'] = 'Content-Engagement';
+			if (typeof(sAction) == 'string') data['event_action'] = sAction;
+			if (typeof(sCategory) == 'string') data['ux_element_type'] = data['ux_element_name'] = sCategory;
+			if (typeof(sLabel) == 'string') {
+				var aLabel = sLabel.split(' : ');
+				if (aLabel.length > 1) {
+					sSectionName = aLabel.shift();
+					sSectionTitle = aLabel.join(' : ');
+				} else {
+					if (['AnchorBlock','Sticky AnchorBlock'].indexOf(sCategory) > -1) {
+						sSectionName = 'Homepage';
+					}
+					if (['ForumAnnouncement'].indexOf(sCategory) > -1) {
+						sSectionName = 'Forum';
+						sSectionTitle = 'Announcements';
+						data['ux_element_name'] = 'Forum Announcement';
+					}
+					if (['ForumSponsorLogo'].indexOf(sCategory) > -1) {
+						sSectionName = 'Forum';
+						sSectionTitle = 'Sponsor Logo';
+						data['ux_element_name'] = 'Forum Sponsor Logo';
+					}
+					if (['STL'].indexOf(sCategory) > -1) {
+						sSectionName = 'Footer';
+						sSectionTitle = 'Sponsored Links';
+						data['ux_element_name'] = 'Sponsored Text Link';
+					}
+					if (['Notifications'].indexOf(sCategory) > -1) {
+						sSectionName = 'Notification Alert';
+						sSectionTitle = 'Notifications';
+					}
+					if (['Mobile Shout-out Box'].indexOf(sCategory) > -1) {
+						sSectionName = 'Mobile Shout-out Box';
+						sSectionTitle = 'Shout-out';
+					}
+					if (/^Qoo10Widget/.test(sCategory)) {
+						sSectionName = 'Dynamic Sponsor';
+						sSectionTitle = 'Super Cool Deals';
+						data['ux_element_name'] = 'Qoo10 Deals Widget';
+					}
+					sArticleName = sLabel;
+				}
+				if (!!sSectionName) oSection['SectionName'] = sSectionName;
+				if (!!sSectionTitle) oSection['SectionTitle'] = sSectionTitle;
+				if (!!sArticleName) oSection['ArticleName'] = sArticleName;
+				if (nPosition > 0) oSection['Position'] = nPosition + '';
+				data['event_label'] = JSON.stringify(oSection);
+			}
+		}
+	} else if (sType == 'virtual_pageview') {
+		data['event'] = 'virtual_pageview';
+	}
+
+	//common data
+	var oDim = (typeof(sCategory) == 'object' ? sCategory : (typeof(window._hwz_ga) == 'object' ? window._hwz_ga : {}));
+	if ('dimension1' in oDim) data.content_publication_date = oDim.dimension1;
+	if ('dimension2' in oDim) data.page_name = oDim.dimension2;
+	if ('dimension3' in oDim) data.content_level_1 = oDim.dimension3;
+	if ('dimension4' in oDim) data.content_author = oDim.dimension4;
+	//if ('dimension5' in oDim) data.content_level_2 = oDim.dimension5;//currently no mapping
+	if ('dimension6' in oDim) data.content_level_2= oDim.dimension6;
+	if ('pagination' in oDim) data.pagination = '' + ~~oDim.pagination;
+
+	gtmSendEvent(data);
+}
+
+window.hwz_ga_lazies = [];
+
+function hwz_ga_click(oWatch, sCategory, sAction, sLabel, oOther) {
+	if (!document.id) return;
+	if (!document.id(oWatch) || typeof(sCategory) != 'string' || typeof(sAction) != 'string' || typeof(sLabel) != 'string') return;
+	if (!oWatch || !$(oWatch)) return;
+	$(oWatch).addEvent('click', function(e){
+		hwz_ga('send', 'event', sCategory, sAction, sLabel, oOther);
+	});
+}
+
+function hwz_ga_lazy(oWatch, sCategory, sAction, sLabel, oOther) {
+	if (!document.id) return;
+	if (!document.id(oWatch) || typeof(sCategory) != 'string' || typeof(sAction) != 'string' || typeof(sLabel) != 'string') return;
+	if (!Array.isArray(window.hwz_ga_lazies)) window.hwz_ga_lazies = [];
+	window.hwz_ga_lazies.push({
+		'target':oWatch,
+		'category':sCategory,
+		'action':sAction,
+		'label':sLabel,
+		'other':oOther
+	})
+}
+
+function hwz_ga_lazy_init() {
+	if (!document.id) return;
+	$(window).addEvent('scroll', function(){
+		if (!Array.isArray(window.hwz_ga_lazies)) return;
+		var nTop = $(window).getScroll().y;
+		var nBottom = $(window).getScroll().y + $(window).getHeight();
+		for(var i=0;i<window.hwz_ga_lazies.length;i++) {
+			var o = window.hwz_ga_lazies[i];
+			if (!o.target || !$(o.target) || typeof(o.category) != 'string' || typeof(o.action) != 'string' || typeof(o.label) != 'string') continue;
+			var nLinkTop =  $(o.target).getPosition().y;
+			var nLinkBottom = $(o.target).getPosition().y + $(o.target).getSize().y;
+			if (!!$(o.target).get('data-impressed')) {
+				continue;
+			}
+			if (nTop < nLinkTop && nBottom > nLinkBottom) {
+				$(o.target).set('data-impressed', 1);
+				window.hwz_ga_lazies[i] = false;
+				if (typeof(o.other) == 'object' && ('data' in o.other || 'position' in o.other)) {
+					hwz_ga('send', 'event', o.category, o.action, o.label, o.other);
+				} else {
+					hwz_ga('send', 'event', o.category, o.action, o.label);
+				}
+			}
+		}
+	});
+}
+
+function hwz_gtm_social_links() {
+	var oDesktop = $('floating-nav-bar');
+	var oMobile = $('nav-mb-main');
+	function sociallink(e) {
+		var re = /(twitter|facebook|youtube)/
+		var s = $(this).get('href');
+		if (!re.test(s)) return;
+		var sPlatform = re.exec(s)[1];
+		hwz_ga('send', 'event', 'Product-Core', 'Social', 'Platform=' + sPlatform, {'data':{'ux_element_name':sPlatform,'ux_element_type':'social platform link'}});
+	}
+	if (!!oDesktop) {
+		oDesktop.getElements('.nav-top-social-icons li a').addEvent('click', sociallink);
+	}
+	if (!!oMobile) {
+		oMobile.getElements('.mb-nav-iconbar li a').addEvent('click', sociallink);
+	}
+	$$('footer .bottom-bar-social li a').addEvent('click', sociallink);
+}
+
+function hwz_gtm_subscribe_button() {
+	if (!$('floating-nav-bar')) return;
+	//Subscribe button
+	$('floating-nav-bar').getElements('a.subscribe-btn').addEvent('click', function(e){
+		hwz_ga('send', 'event', 'Product-Conversion', 'Subscribe', 'Asset=HardwareZone Web', {'data':{'ux_element_name':'subscribe','ux_element_type':'magazine subscription link'}});
+	});
+}
+
+function hwz_gtm_scrolldepth() {
+	//esd = enable scroll depth
+	if (!window.HWZ || !window.HWZ.gtm || !window.HWZ.gtm.esd) return;
+
+	$(document).addEvent('scroll', function(){
+		var o = $(document.body);
+		var oFooter = o.getElement('footer');
+		var n = ~~o.get('data-scrolldepth');
+		var nScroll = $(window).getScroll().y + $(window).getHeight();
+		var nHeight = o.getScrollHeight() - (!!oFooter ? ~~oFooter.getHeight() : 0);
+		var nPercent = Math.ceil((nScroll / nHeight) * 100);
+		if (nPercent > n) {
+			if (nPercent >= 100) o.set('data-scrolldepth', 100);
+			else if (nPercent >= 75) o.set('data-scrolldepth', 75);
+			else if (nPercent >= 50) o.set('data-scrolldepth', 50);
+			else if (nPercent >= 25) o.set('data-scrolldepth', 25);
+			var nNew = ~~o.get('data-scrolldepth');
+			if (nNew > n) {
+				hwz_ga('send', 'event', 'Content-Engagement', 'Scroll', 'Depth=' + nNew + '%', {'data':{'ux_element_name':'scroll','ux_element_type':'scroll depth'}});
+			}
+		}
+	});
+}
+
+function hwz_gtm_menu() {
+	var oDesktop = $('floating-nav-bar');
+	var oMobile = $('nav-mb-main');
+	if (!!oDesktop) {
+		oDesktop.getElements('.nav-main-menu a[href]:not([href^=javascript]):not([href^=#])').addEvent('click', function(e){
+			var sUrl = $(this).get('href');
+			var sType = $(this).get('text')
+			hwz_ga('send', 'event', 'Product-Core', 'Navigation', 'Type=' + sType, {'data':{'ux_element_name':'menu link','ux_element_type':'navigation'}});
+		});
+	}
+	if (!!oMobile) {
+		oMobile.getElements('.mb-nav-links a[href]:not([href^=javascript]):not([href^=#])').addEvent('click', function(e){
+			var sUrl = $(this).get('href');
+			var sType = $(this).get('text')
+			hwz_ga('send', 'event', 'Product-Core', 'Navigation', 'Type=' + sType, {'data':{'ux_element_name':'menu link','ux_element_type':'navigation'}});
+		});
+	}
+}
+
+function hwz_gtm_addthis() {
+	if (!window.addthis) return;
+	addthis.addEventListener('addthis.menu.share', function(e){
+		var sPlatform = 'addthis';
+		try {
+			if (typeof(e.data.service) == 'string') sPlatform = e.data.service;
+		} catch(err) {
+			//
+		}
+		hwz_ga('send', 'event', 'Content-Conversion', 'Share', 'Platform=' + sPlatform, {'data':{'ux_element_name':'addthis','ux_element_type':'social media share'}});
+	});
+}
+
+function hwz_gtm_checklogin() {
+	if (!document.referrer || !/(\/login\.php\?do=login|logon_2fa\.php)/.test(document.referrer)) return;
+	var s = (!!window.HWZ && !!window.HWZ.gtm && !!window.HWZ.gtm.euid ? window.HWZ.gtm.euid : '');
+	hwz_ga('send', 'event', 'Product-Core', 'Login', 'UserID=' + s, {'data':{'ux_element_name':'userlogin','ux_element_type':'login'}});
+}
+
+function hwz_prepare_gtm() {
+	hwz_gtm_social_links();
+	hwz_gtm_menu();
+	hwz_gtm_subscribe_button();
+	hwz_gtm_addthis();
+	hwz_gtm_scrolldepth();
+}
+
+window.addEventListener('message', function(e){
+	if (typeof(e.data)=='undefined' || typeof(e.data.send)=='undefined' || e.data.send != 'event') return;
+	var oData = e.data;
+	if (typeof(oData.category)=='undefined' || typeof(oData.action)=='undefined' || typeof(oData.label)=='undefined' || typeof(oData.other)=='undefined') return;
+	hwz_ga('send', 'event', oData.category, oData.action, oData.label, oData.other);
+});
+
+hwz_ga('send', 'pageview');
+hwz_ga_lazy_init();
+hwz_gtm_checklogin();
+
+window.addEvent('domready', function() {
+	if (typeof(hwz_prepare_gtm) != 'undefined') hwz_prepare_gtm();
+});
+
+//Google Tag Manager
+(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-N58WWMC');
+
+

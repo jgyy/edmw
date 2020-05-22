@@ -1,0 +1,146 @@
+function hwz_forum_logo_skinning(domain, ref){
+	var hwz_forumscpg_skinning = {	
+		'1': {
+			'clickthru_link': '',
+			'main_bgcolor': '#153598',
+			'main_bgimage': 'http://assets.hardwarezone.com/img/sg/ihio359_festive_themes/ny-skin-main.jpg',
+			'sub_bgcolor': '#102872',
+			'sub_bgimage': 'http://assets.hardwarezone.com/img/sg/ihio359_festive_themes/ny-skin-sub.jpg',
+			'main_logo': '/img/sg/logo/hwz-dark-bg.png',
+			'sub_logo': '/img/sg/logo/hwz-dark-bg.png',
+			'logo': '',
+			'startdate': 'January 1, 2016 00:00:00',
+			'enddate': 'January 27, 2016 23:59:59',
+			'main_style': 'background-attachment: fixed; background-repeat: no-repeat; margin: 0px; background-position: 50% 36px;',
+			'sub_style': 'background-attachment: fixed; background-repeat: no-repeat; margin: 0px; background-position: 50% 36px;',
+			'skin_skip_domain': true //set to true if using full URL for bgimage
+		},
+		'2': {
+			'clickthru_link': '',
+			'main_bgcolor': '#ed1b36',
+			'main_bgimage': 'http://assets.hardwarezone.com/img/sg/ihio359_festive_themes/cny-skin-main.jpg',
+			'sub_bgcolor': '#f2556a',
+			'sub_bgimage': 'http://assets.hardwarezone.com/img/sg/ihio359_festive_themes/cny-skin-sub.jpg',
+			'main_logo': '/img/sg/logo/hwz-dark-bg.png',
+			'sub_logo': '/img/sg/logo/hwz-dark-bg.png',
+			'logo': '',
+			'startdate': 'January 28, 2016 00:00:00',
+			'enddate': 'February 10, 2016 23:59:59',
+			'main_style': 'background-attachment: fixed; background-repeat: no-repeat; margin: 0px; background-position: 50% 36px;',
+			'sub_style': 'background-attachment: fixed; background-repeat: no-repeat; margin: 0px; background-position: 50% 36px;',
+			'skin_skip_domain': true //set to true if using full URL for bgimage
+		}
+	};
+
+	try {
+		var excludeforum = [89];
+		if (~~HWZ.foruminfo.forum.id > 0 && excludeforum.indexOf(~~HWZ.foruminfo.forum.id) > -1) return;
+	} catch(e) {
+		if (typeof(console) != 'undefined') console.log(e);
+	}
+
+	function hwz_forumskin_handleClick(e, num)
+	{
+		e = e || event;
+		var target = e.srcElement || e.target;
+		if ( document.body == target )
+			if(!!hwz_forumscpg_skinning[num]['clickthru_link'])
+				window.open(hwz_forumscpg_skinning[num]['clickthru_link'],'_blank');
+	}
+
+	function hwz_forumskin_handleMouseOver(e)
+	{
+		e = e || event;
+		var target = e.srcElement || e.target;
+
+		if ( document.body == target ) {
+			document.body.style.cursor='pointer';
+		} else {
+			document.body.style.cursor='default';
+		}
+	}
+
+	function hwz_forum_cpg_setup(domain, num, page){
+		var hwz_page_main_bg = '';
+		var hwz_page_sub_bg = '';
+		var hwz_page_main_logo = '';
+		var hwz_page_sub_logo = '';
+
+		if ('skin_skip_domain' in hwz_forumscpg_skinning[num] && !! hwz_forumscpg_skinning[num].skin_skip_domain) {
+			domain = '';
+		}
+		
+		// forums homepage
+		if(hwz_forumscpg_skinning[num]['main_bgcolor'] != '') 
+			hwz_page_main_bg += 'background-color: ' + hwz_forumscpg_skinning[num]['main_bgcolor'] + '; background-image: none;';
+		if(hwz_forumscpg_skinning[num]['main_bgimage'] != '') 
+			hwz_page_main_bg += 'background-image: url(' + domain + hwz_forumscpg_skinning[num]['main_bgimage'] + '); ' + hwz_forumscpg_skinning[num]['main_style'];
+		if (hwz_page_main_bg != '') 
+			hwz_page_main_bg = '<style type="text/css">body { '+hwz_page_main_bg+'}</style>';
+
+		//main logo override default logo
+		if ('main_logo' in hwz_forumscpg_skinning[num] && !!hwz_forumscpg_skinning[num].main_logo) {
+			hwz_page_main_logo = hwz_forumscpg_skinning[num].main_logo;
+		}
+		
+		// all pages except forums homepage
+		if(hwz_forumscpg_skinning[num]['sub_bgcolor'] != '') 
+			hwz_page_sub_bg += 'background-color: ' + hwz_forumscpg_skinning[num]['sub_bgcolor'] + '; background-image: none;';
+		if(hwz_forumscpg_skinning[num]['sub_bgimage'] != '') 
+			hwz_page_sub_bg += 'background-image: url(' + domain + hwz_forumscpg_skinning[num]['sub_bgimage'] + '); ' + hwz_forumscpg_skinning[num]['sub_style'];
+		if (hwz_page_sub_bg != '') 
+			hwz_page_sub_bg = '<style type="text/css">body { '+hwz_page_sub_bg+'}</style>';
+
+		//sub logo override default logo
+		if ('sub_logo' in hwz_forumscpg_skinning[num] && !!hwz_forumscpg_skinning[num].sub_logo) {
+			hwz_page_sub_logo = hwz_forumscpg_skinning[num].sub_logo;
+		}
+		
+		// logo
+		var oMastheadLogo = document.getElementById('hwz-masthead-logo');
+		if(hwz_forumscpg_skinning[num]['logo'] != '' && !!oMastheadLogo){
+			oMastheadLogo.setAttribute('src', domain + hwz_forumscpg_skinning[num]['logo']);
+			oMastheadLogo.setAttribute('style', '');
+		}
+		
+		// click through link
+		if(!!hwz_forumscpg_skinning[num]['clickthru_link']){
+			document.body.onclick = function(e) { hwz_forumskin_handleClick(e, num); }
+			document.body.onmouseover = hwz_forumskin_handleMouseOver;
+		}
+		
+		// output
+		if(!!page){
+			switch(page){
+				case 'main':
+					if (hwz_page_main_bg != '') document.write(hwz_page_main_bg);
+					if (hwz_page_main_logo != '' && !!oMastheadLogo) {
+						oMastheadLogo.setAttribute('src', domain + hwz_page_main_logo);
+						oMastheadLogo.setAttribute('style', '');
+					}
+					break;
+				case 'sub':
+					if (hwz_page_sub_bg != '') document.write(hwz_page_sub_bg);
+					if (hwz_page_sub_logo != '' && !!oMastheadLogo) {
+						oMastheadLogo.setAttribute('src', domain + hwz_page_sub_logo);
+						oMastheadLogo.setAttribute('style', '');
+					}
+					break;
+			}
+		}
+	}
+
+	var datenow = Date.now(); // in milisec
+	// getTime() convert to milisec
+	for(var hwzSkinKey in hwz_forumscpg_skinning) {
+		var hwzSkinStartDate = new Date(hwz_forumscpg_skinning[hwzSkinKey]['startdate']).getTime();
+		var hwzSkinEndDate = new Date(hwz_forumscpg_skinning[hwzSkinKey]['enddate']).getTime();
+		
+		if ( !( hwzSkinStartDate && hwzSkinEndDate) ) return;
+
+		if (datenow > hwzSkinStartDate && datenow < hwzSkinEndDate) {
+			hwz_forum_cpg_setup(domain, hwzSkinKey, ref);
+			return;
+		}
+	}
+}		

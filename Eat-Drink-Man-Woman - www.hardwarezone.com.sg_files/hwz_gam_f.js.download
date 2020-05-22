@@ -1,0 +1,558 @@
+function uw_debuglog() {
+	if (typeof(console)!= 'object'||typeof(console.log)!='function')  return false;
+	if (!/sphmdb=1/.test(document.cookie)) return false;
+	console.log.apply(console, arguments);
+	return true;
+}
+
+var sphmUWGPT = {
+
+	gamdata: function(o) {
+		var r = {
+			'section':false,
+			'page':false,
+			'articleid':false,
+			'tag':false,
+			'page_number':1,
+			'sponsored':false,
+			'hwz_sg_page':false,
+			'hwz_sg_thread':false
+		};
+		if (typeof(o) != 'object') return r;
+		if (('section' in o) && typeof(o['section']) == 'string' && /^[a-z0-9\/-]+$/.test(o['section'])) r['section'] = o['section'];
+		if (('page' in o) && typeof(o['page']) == 'string' && ['article','home','listing','tag','forum'].indexOf(o['page']) > -1 ) r['page'] = o['page'];
+		if (('articleid' in o) && ~~o['articleid'] > 0) r['articleid'] = ~~o['articleid'];
+		if (('articleid' in o) && Array.isArray(o['articleid'])) r['articleid'] = o['articleid'];
+		if (('tag' in o) && Array.isArray(o['tag']) && o['tag'].length > 0) r['tag'] = o['tag'];
+		if (('sponsored' in o) && !!o['sponsored']) r['sponsored'] = true;
+		if (('hwz_sg_page' in o) && typeof(o['hwz_sg_page']) == 'string') r['hwz_sg_page'] = o['hwz_sg_page'];
+		if (('hwz_sg_thread' in o) && ~~o['hwz_sg_thread'] > 0) r['hwz_sg_thread'] = ~~o['hwz_sg_thread'];
+		return r;
+	},
+
+	urlquery: function(s) {
+		var q = window.location.search.substring(1).split("&");
+		for (var i=0;i<q.length;i++) {
+			var v = q[i].split("=");
+			if(decodeURIComponent(v[0]) === s) return decodeURIComponent(!!v[1] ? v[1] : '');
+		}
+		return false;
+	},
+	
+	hasMobileInsert: function () { return (screen.width <= 740); },
+	hasMobileAdhesion: function () { return false && (screen.width <= 740); },
+	hasCatfish: function () { return ((!/catfishDisplayed=/.test(document.cookie) || !!sphmUWGPT.urlquery('dfp_preview')) && screen.width <= 740); },
+	hasPostitial: function () { return ((!/postitialDisplayed=/.test(document.cookie) || !!sphmUWGPT.urlquery('dfp_preview')) && screen.width <= 740); },
+	hasPrestitial: function () { return ((!/prestitialDisplayed=/.test(document.cookie) || !!sphmUWGPT.urlquery('dfp_preview')) && screen.width > 740); },
+	hasSkinning: function() { return (screen.width < 1060 || (!!window.HWZ && !!window.HWZ.layout && !!window.HWZ.layout.width && window.HWZ.layout.width === 'fixed')); },
+	bPrebidded: false,
+	bPrebidTimedOut: false,
+	bCanRefresh: false
+}
+
+var gptadslots=[];
+var googletag = googletag || {};
+googletag.cmd = googletag.cmd || [];
+(function(){ var gads = document.createElement('script');
+	gads.async = true; gads.type = 'text/javascript';
+	var useSSL = 'https:' == document.location.protocol;
+	gads.src = (useSSL ? 'https:' : 'http:') + '//www.googletagservices.com/tag/js/gpt.js';
+	var node = document.getElementsByTagName('script')[0];
+	node.parentNode.insertBefore(gads, node);
+})();
+
+
+//BEGIN: SMX
+(function(){ var smxs = document.createElement('script');
+	smxs.async = true; smxs.type = 'text/javascript';
+	var useSSL = 'https:' == document.location.protocol;
+	smxs.src = 'https://www.hardwarezone.com.sg/js/prebid.appnexus.js';
+	var node = document.getElementsByTagName('script')[0];
+	node.parentNode.insertBefore(smxs, node);
+})();
+
+var smxSizeConfig = [
+	{
+		'mediaQuery': '(min-width:800px)',
+		'sizesSupported': [[728,90],[300,250]],
+		'labels': ['desktop']
+	},
+	{
+		'mediaQuery': '(max-width:799px)',
+		'sizesSupported': [[300,50],[300,250]],
+		'labels': ['mobile']
+	}
+];
+var smxAdUnits = [
+	{
+		
+		code: 'div-gpt-ad-lb1',
+		mediaTypes: { banner: { sizes: [[728,90],[300,50]] } },
+		bids: [{ bidder: "appnexus", labelAny: ["desktop", "mobile"], params: { placementId: 13839082 } }]
+	},
+	{
+		
+		code: 'div-gpt-ad-imu1',
+		mediaTypes: { banner: { sizes: [[300,250]] } },
+		bids: [{ bidder: "appnexus", labelAny: ["desktop", "mobile"], params: { placementId: 13839083 } }]
+	}
+];
+
+if (true) {
+	var PREBID_TIMEOUT = 1000;
+	var FAILSAFE_TIMEOUT = 3000;
+	// prevent loading of ads. Use refresh
+	googletag.cmd.push(function() {
+		googletag.pubads().disableInitialLoad();
+	});
+	var pbjs = pbjs || {};
+	pbjs.que = pbjs.que || [];
+	pbjs.que.push(function() {
+		pbjs.setConfig({
+			debug: false,
+			sizeConfig: smxSizeConfig,
+			priceGranularity: "dense",
+			enableSendAllBids: true
+		});
+		pbjs.addAdUnits(smxAdUnits);
+		/*
+		pbjs.requestBids({
+			bidsBackHandler: initAdserver,
+			timeout: PREBID_TIMEOUT
+		});
+		*/
+	});
+
+	function initAdserver() {
+		if (!!sphmUWGPT.bPrebidded || !!pbjs.initAdserverSet) return;
+		pbjs.initAdserverSet = true;
+		googletag.cmd.push(function() {
+			pbjs.que.push(function() {
+				sphmUWGPT.bPrebidded = true;
+				pbjs.setTargetingForGPTAsync();
+				googletag.pubads().refresh();
+			});
+		});
+	}
+	// in case PBJS doesn't load
+	setTimeout(function() {
+		sphmUWGPT.bPrebidTimedOut = true;
+		if (!sphmUWGPT.bPrebidded && !!sphmUWGPT.bCanRefresh) {
+			sphmUWGPT.bPrebidded = true;
+			googletag.cmd.push(function() {
+				googletag.pubads().refresh();
+			});
+		}
+	}, PREBID_TIMEOUT);
+
+	setTimeout(function() {
+		initAdserver();
+	}, FAILSAFE_TIMEOUT);
+
+	function activatePrebid() {
+		pbjs.que.push(function() {
+			pbjs.requestBids({
+				bidsBackHandler: initAdserver,
+				timeout: PREBID_TIMEOUT
+			});
+		});
+	}
+} else {
+	function activatePrebid() {}
+}
+//END: SMX
+
+function hwzGamInit() {
+	googletag.cmd.push(function() {
+		var adsuffix = (!!~~sphmUWGPT.urlquery('sphmtp')) ? "_testing" : "";
+
+		var aAdUnits = [
+			{ 'path':'/5908/hwz-sg/prestitial', 'div':'div-gpt-ad-prestitial' },
+			{ 'path':'/5908/hwz-sg/skinning', 'div':'div-gpt-ad-skinning' },
+			{ 'path':'/5908/hwz-sg/catfish', 'div':'div-gpt-ad-catfish' },
+			{ 'path':'/5908/hwz-sg/lb1', 'div':'div-gpt-ad-lb1' },
+			{ 'path':'/5908/hwz-sg/lb2', 'div':'div-gpt-ad-lb2' },
+			{ 'path':'/5908/hwz-sg/skyscraper1', 'div':'div-gpt-ad-skyscraper1' },
+			{ 'path':'/5908/hwz-sg/skyscraper2', 'div':'div-gpt-ad-skyscraper2' },
+			{ 'path':'/5908/hwz-sg/skyscraper3', 'div':'div-gpt-ad-skyscraper3' },
+			{ 'path':'/5908/hwz-sg/fpi1', 'div':'div-gpt-ad-fpi1' },
+			{ 'path':'/5908/hwz-sg/fpi2', 'div':'div-gpt-ad-fpi2' },
+			{ 'path':'/5908/hwz-sg/button1', 'div':'div-gpt-ad-button1' },
+			{ 'path':'/5908/hwz-sg/button2', 'div':'div-gpt-ad-button2' },
+			{ 'path':'/5908/hwz-sg/button3', 'div':'div-gpt-ad-button3' },
+			{ 'path':'/5908/hwz-sg/button4', 'div':'div-gpt-ad-button4' },
+			{ 'path':'/5908/hwz-sg/button5', 'div':'div-gpt-ad-button5' }
+		];
+
+		if (gptadslots.length > 0) {
+			for (var i=0;i<gptadslots.length && aAdUnits.length > 0; i++) {
+				if (typeof(gptadslots[i].getSlotElementId) != 'function') continue;
+				var sDivId = gptadslots[i].getSlotElementId();
+				for(var j=0;j<aAdUnits.length;j++) {
+					if (aAdUnits[j].div != sDivId) continue;
+					aAdUnits.splice(j,1);
+					break;
+				}
+			}
+		}
+
+		var oGam = sphmUWGPT.gamdata(window.HWZ.gam || {});
+
+		var skinning_d = [[1,2]];
+		var skinning_m = [[1,4]];
+		var sizemap_lb1 = googletag.sizeMapping().addSize([1000, 300], [[728,90],[970,90],[970,250]]).addSize([800, 200], [[728,90]]).addSize([0, 0], [[300,50],[320,50],[320,100],[320,250]]).build();
+		var sizemap_lb2 = googletag.sizeMapping().addSize([1000, 300], [[728,90],[970,90]]).addSize([800, 200], [[728,90]]).addSize([0, 0], []).build();
+		var sizemap_skin = googletag.sizeMapping().addSize([1060, 0], skinning_d).addSize([0, 0], skinning_m).build();
+		var sizemap_imu = googletag.sizeMapping().addSize([600,600], [[300,250],[1,1],'fluid']).addSize([0, 0],[[300,250],[1,1],'fluid']).build();
+		var sizemap_mas = googletag.sizeMapping().addSize([720, 200], ['fluid',[1, 1],[300,250]]).addSize([0, 0], ['fluid',[1, 3],[300,250]]).build();
+		var sizemap_fpi = googletag.sizeMapping().addSize([600, 100], [[570,70],[300,50],[320,50],[320,100]]).addSize([0, 0], [[300,50],[320,50],[320,100]]).build();
+		var sizemap_sky = googletag.sizeMapping().addSize([1000, 300], [[160,600]]).addSize([0, 0], [[300,50],[320,50],[320,100],[320,250]]).build();
+
+		var bCatfish = sphmUWGPT.hasCatfish();
+		var bPostitial = sphmUWGPT.hasPostitial();
+		var bPrestitial = sphmUWGPT.hasPrestitial();
+		var bMobileInsert = sphmUWGPT.hasMobileInsert();
+		var bMobileAdhesion = sphmUWGPT.hasMobileAdhesion();
+
+		var aNewSlots = [];
+		for (var nAdNum=0; nAdNum<aAdUnits.length; nAdNum++) {
+			var oAdUnit = aAdUnits[nAdNum];
+			var sAdUnitPath = oAdUnit.path;
+			var bDisplay = true;
+
+			if (typeof(oGam.section) == 'string' && oGam.section.length > 0) {
+				sAdUnitPath += '/' + oGam.section;
+			}
+
+			if (!!adsuffix) {
+				sAdUnitPath += adsuffix;
+			}
+
+			var oAdDiv = document.getElementById(oAdUnit.div);
+			if (!oAdDiv) continue;
+			uw_debuglog('declaring ad', oAdUnit.div);
+
+			var oSlot = null;
+
+			switch(oAdUnit.div) {
+				case 'div-gpt-ad-catfish':
+					if (!!bCatfish) {
+						oSlot = googletag.defineSlot(sAdUnitPath, [1,1], oAdUnit.div);
+						if (!!oSlot) oSlot.setCollapseEmptyDiv(true,true).addService(googletag.pubads());
+						var dExpire = new Date();
+						dExpire.setTime(dExpire.getTime() + (4*60*60*1000));
+						document.cookie = "catfishDisplayed=yes;path=/; expires=" + dExpire.toGMTString();
+					}
+				break;
+
+				case 'div-gpt-ad-lb1':
+					oSlot = googletag.defineSlot(sAdUnitPath, [[970,250],[970,90],[728,90],[300,50],[320,50],[320,100],[320,250]], oAdUnit.div).defineSizeMapping(sizemap_lb1);
+					if (!!oSlot) oSlot.addService(googletag.pubads());
+				break;
+
+				case 'div-gpt-ad-lb2':
+					oSlot = googletag.defineSlot(sAdUnitPath, [[970,90],[728,90]], oAdUnit.div).defineSizeMapping(sizemap_lb2);
+					if (!!oSlot) oSlot.setCollapseEmptyDiv(true,true).addService(googletag.pubads());
+				break;
+
+				case 'div-gpt-ad-prestitial':
+					if (!!bPrestitial && bindPrestitial(sAdUnitPath, oAdUnit.div)) {
+						oSlot = googletag.defineSlot(sAdUnitPath, [1, 1], oAdUnit.div);
+						if (!!oSlot) oSlot.setCollapseEmptyDiv(true,true).addService(googletag.pubads());
+					}
+				break;
+
+				case 'div-gpt-ad-skinning':
+					if (sphmUWGPT.hasSkinning()) {
+						oSlot = googletag.defineSlot(sAdUnitPath, [[1,2],[1,4]], oAdUnit.div).defineSizeMapping(sizemap_skin);
+						if (!!oSlot) oSlot.setCollapseEmptyDiv(true,true).addService(googletag.pubads());
+					}
+				break;
+
+				case 'div-gpt-ad-skyscraper1':
+					oSlot = googletag.defineSlot(sAdUnitPath, [[160,600],[300,50],[320,50],[320,100],[320,250]], oAdUnit.div).defineSizeMapping(sizemap_sky);
+					if (!!oSlot) oSlot.setCollapseEmptyDiv(true).addService(googletag.pubads());
+				break;
+
+				case 'div-gpt-ad-skyscraper2':
+					var oForum = document.getElementById('forum');
+					var nMinHeight = 610 * 4;
+					if (!!oForum && oForum.offsetHeight > nMinHeight) {
+						oAdDiv.style.position = 'relative';
+						oAdDiv.style.marginTop = (610 * 3) + 'px';
+						oSlot = googletag.defineSlot(sAdUnitPath, [[160,600]], oAdUnit.div);
+						if (!!oSlot) oSlot.setCollapseEmptyDiv(true,true).addService(googletag.pubads());
+					}
+				break;
+
+				case 'div-gpt-ad-skyscraper3':
+					var oForum = document.getElementById('forum');
+					var nMinHeight = 610 * 8;
+					if (!!oForum && oForum.offsetHeight > nMinHeight) {
+						oAdDiv.style.position = 'relative';
+						oAdDiv.style.marginTop = (610 * 3) + 'px';
+						oSlot = googletag.defineSlot(sAdUnitPath, [[160,600]], oAdUnit.div);
+						if (!!oSlot) oSlot.setCollapseEmptyDiv(true,true).addService(googletag.pubads());
+					}
+				break;
+
+				case 'div-gpt-ad-fpi1':
+				case 'div-gpt-ad-fpi2':
+					oSlot = googletag.defineSlot(sAdUnitPath, [[570,70],[300,50],[320,50],[320,100]], oAdUnit.div).defineSizeMapping(sizemap_fpi);
+					if (!!oSlot) oSlot.setCollapseEmptyDiv(true).addService(googletag.pubads());
+					oAdDiv.style.textAlign = 'center';
+				break;
+
+				case 'div-gpt-ad-button1':
+				case 'div-gpt-ad-button2':
+				case 'div-gpt-ad-button3':
+				case 'div-gpt-ad-button4':
+				case 'div-gpt-ad-button5':
+					oSlot = googletag.defineSlot(sAdUnitPath, [[150,60]], oAdUnit.div);
+					if (!!oSlot) oSlot.setCollapseEmptyDiv(true,true).addService(googletag.pubads());
+				break;
+
+				default:
+					bDisplay: false;
+			}
+
+			if (!!bDisplay && !!oSlot) {
+				aNewSlots.push(oSlot);
+				gptadslots.push(oSlot);
+			}
+
+		}
+
+		if (!bPrestitial) {
+			SPHMoverlay.off();
+		}
+
+		var sDfpPreview = sphmUWGPT.urlquery('dfp_preview');
+		var sTestAdId = sphmUWGPT.urlquery('test_adid');
+		var sTestPlId = sphmUWGPT.urlquery('test_plid');
+		if (!!sDfpPreview) {
+			googletag.pubads().setTargeting("dfp_preview", sDfpPreview);
+		}
+		if (!!sTestAdId) googletag.pubads().setTargeting("test_adid", sTestAdId);
+		if (!!sTestPlId) googletag.pubads().setTargeting("test_plid", sTestPlId);
+		if (!!window.ccauds && !!ccauds.Profile && !!ccauds.Profile.pid) googletag.pubads().setTargeting("dfp_cc_id", ccauds.Profile.pid);
+		if (Array.isArray(oGam.tag) && oGam.tag.length) googletag.pubads().setTargeting("tag", oGam.tag);
+		if (typeof(oGam.page) == 'string' && oGam.page.length > 0) googletag.pubads().setTargeting("page", oGam.page);
+		if (typeof(oGam.articleid) == 'number' && oGam.articleid > 0) googletag.pubads().setTargeting("articleid", String( oGam.articleid ));
+		if (Array.isArray(oGam.articleid)) googletag.pubads().setTargeting("articleid", oGam.articleid);
+		if (typeof(oGam.page_number) == 'number' && oGam.page_number > 0) googletag.pubads().setTargeting("page_number", String( oGam.page_number ));
+		if (!!oGam.hwz_sg_page) googletag.pubads().setTargeting("hwz_sg_page", oGam.hwz_sg_page);
+		if (!!oGam.hwz_sg_thread) googletag.pubads().setTargeting("hwz_sg_thread", String( oGam.hwz_sg_thread) );
+		googletag.pubads().setTargeting("pageskinMobile_yes", screen.width >= 395 ? "true" : "false");
+		googletag.pubads().setTargeting("pageskinDesktop_yes", screen.width >= 1250 ? "true" : "false");
+		googletag.pubads().setTargeting("impression_split", String ( Math.floor(Math.random() * 20) + 1 ));
+
+		if (!!window.gpt_grapeshots && !!window.gpt_grapeshots.length && ~~window.gpt_grapeshots.length > 0) {
+			var gpt_gs_channels = [];
+			for (var i=0;i<gpt_grapeshots.length && i<10;i++) {
+				if (typeof(gpt_grapeshots[i]) != 'string') continue;
+				gpt_gs_channels.push(gpt_grapeshots[i]);
+			}
+			if (gpt_gs_channels.length > 0) {
+				googletag.pubads().setTargeting("gs_channels", gpt_gs_channels);
+			}
+		}
+
+		googletag.pubads().enableSingleRequest();
+		googletag.enableServices();
+
+		for (var i=0; i<aNewSlots.length; i++) {
+			var sAdDiv = aNewSlots[i].getSlotElementId();
+			googletag.cmd.push(function() { uw_debuglog('displaying ad', sAdDiv); googletag.display( sAdDiv ); });
+		}
+
+		sphmUWGPT.bCanRefresh = true;
+
+		var bRefresh = (!!sphmUWGPT.bPrebidTimedOut && !sphmUWGPT.bPrebidded);
+		if (!!bRefresh && aNewSlots.length > 0) {
+			uw_debuglog('refrehsing');
+			sphmUWGPT.bPrebidded = true;
+			googletag.pubads().refresh(aNewSlots);
+		}
+	});
+}
+
+var postitial_timer;
+window.getCookieByName = function(name) {
+	match = document.cookie.match(new RegExp(name + '=([^;]+)'));
+	if (match) return match[1];
+}
+
+function bindPrestitial(sAdUnit, sAdDiv) {
+	uw_debuglog("bindPrestitial"); 
+
+	var topOverlayImpressions = 1;
+	var topOverlayImpressionsServed = 0;
+	if(window.getCookieByName("topOverlayImpressionsServed") != undefined) {
+		topOverlayImpressionsServed = parseInt(window.getCookieByName("topOverlayImpressionsServed"));
+	}
+
+	var bPrestitial = sphmUWGPT.hasPrestitial();
+	if( (topOverlayImpressionsServed<topOverlayImpressions && !!bPrestitial) || !!bPrestitial ) {
+		googletag.cmd.push(function() {
+			if (!sAdUnit || !sAdDiv) {
+				SPHMoverlay.off();
+				return;
+			}
+			googletag.pubads().addEventListener('slotRenderEnded',function(e) {
+				var sSlot = e.slot.getSlotElementId();
+				var rePrestitial = new RegExp('^' + sAdDiv);
+				if (!rePrestitial.test(sSlot)) return;
+				if (e.isEmpty) {
+					uw_debuglog("prestitial-"); 
+					SPHMoverlay.off();
+				} else {
+					uw_debuglog("prestitial+"); 
+					SPHMoverlay.on();
+					SPHMoverlay.ad();
+
+					var o=document.getElementById('sphm_overlay');
+					var oCont=document.getElementById('sphm_overlay_continue');
+					var oOOP = e.slot;
+					o.addEventListener('click',function(){
+						if (SPHMoverlay.hasClass('gotads')) return;
+						if (!!oOOP) googletag.destroySlots([oOOP]);
+						SPHMoverlay.off();
+					});
+					oCont.addEventListener('click',function(){
+						if (!!oOOP) googletag.destroySlots([oOOP]);
+						SPHMoverlay.off();
+					});
+
+					var expiry = new Date();
+					expiry.setTime(expiry.getTime() + (4*60*60*1000));
+					topOverlayImpressionsServed = topOverlayImpressionsServed+1;
+					if(topOverlayImpressionsServed == topOverlayImpressions) {
+						document.cookie = "prestitialDisplayed=yes;path=/; expires=" + expiry.toGMTString();
+						document.cookie = "topOverlayImpressionsServed=0;path=/; expires=" + expiry.toGMTString();
+					} else {
+						document.cookie = "topOverlayImpressionsServed="+topOverlayImpressionsServed+";path=/; expires=" + expiry.toGMTString(); 
+					}
+				}
+			});
+
+		});
+		return true;
+	} else {
+		uw_debuglog("Prestitial frequency cap from cookie");
+		SPHMoverlay.off();
+	}
+
+	return false;
+}
+
+function bindMidArticleSpecial(s) {
+	if (!document.id || typeof(s) != 'string' || s.length < 1) return false;
+
+	var o = document.id('hwz-news') || document.id('hwz-feature') || document.id('hwz-review') || document.id('hwz-blogs');
+	if (!o || o.hasClass('sponsored')) return false;
+	var oOutstream = new Element('div', { 'class':'hwz-ad-outstream' });
+	$(s).addClass('hwz-ad-outstream-ad').inject(oOutstream);
+	if (o.hasClass('gallery')) {
+		var oHOW = $('hwz-outstream-wrapper');
+		if (!oHOW) return false;
+		oOutstream.inject(oHOW);
+	} else {
+		var oNoVi = document.id('vi-stories-data');
+		var a = o.getElements('.page > p:not(.rtecenter)');
+		if (a.length < 3) return false;//at least 3 paragraphs;
+
+		//var n = Math.floor(a.length / 2) - 1;
+		var n = 1;//fixed to para 2
+
+		//for vi video
+		if (!oNoVi && o.get('id') != 'hwz-review' && a.length > 4) {
+			n = Math.floor(a.length / 3) - 1;
+			n = 1;//fixed to para 2
+			nv = Math.floor(a.length / 3) * 2 - 1;
+			if (nv < 3) nv = 3;
+
+			oVi = new Element('div', {'id':'hwz-vi-video'});
+			oViLabel = new Element('div', {'text':'Related video', 'class':'hwz-vi-video-label'});
+			oVi.grab(oViLabel);
+			oVi.inject(a[nv], 'after');
+
+			(function (v,i) {
+				var scp = v.createElement("script"),
+				config = {
+					ChannelID: '5bdc479828a061629515f0f8',
+					AdUnitType: '2',
+					PublisherID: '971735416090009',
+					PlacementID: 'pltehf1FVdJUIu6PAjt',
+					DivID: '',
+					IAB_Category: 'IAB19',
+					Keywords: '',
+					Language: 'en-us',
+					BG_Color: '',
+					Text_Color: '',
+					Font: '',
+					FontSize: '',
+					DivID: 'hwz-vi-video',
+					CallbackFunction: function(e){ }
+				};
+				scp.src='https://s.vi-serve.com/tagLoader.js';
+				scp.type = "text/javascript";
+				scp.onload = function() {
+					i[btoa('video intelligence start')].init(config);
+				};
+				(v.getElementsByTagName('head')[0] || v.documentElement.appendChild(v.createElement('head'))).appendChild(scp);
+			})(document, window);
+		}
+		oOutstream.inject(a[n], 'after');
+	}
+
+	var oTeads = new Element('div', { 'id':'teads-outstream', 'name':'teads-outstream' });
+	oTeads.inject(oOutstream, 'top');
+	//oTeads.inject($(s), 'top');
+	return true;
+}
+
+
+window.addEventListener('message', receiveMessage, false);
+function receiveMessage(evt)
+{
+	if (evt.data !== 1) return;
+	var aContent = document.getElementsByClassName('gpt-ad-midarticlespecial');
+	for(var i=0;i<aContent.length;i++) {
+		if (!/div-gpt-ad-midarticlespecial/.test(aContent[i].id) || aContent[i].clientHeight < 6) continue;
+		closeMAS1(aContent[i]);
+	}
+}
+function closeMAS1(content) {
+	if (!content) return;
+	content.style.overflow = 'hidden';
+	content.style.padding = '0';
+	var i = content.clientHeight;
+	var totalHeight = content.clientHeight;
+	var loop = setInterval(function() {
+		if (content.clientHeight < 6)
+		{
+			clearInterval(loop);
+			content.style.display = 'none';
+			content.innerHTML = "";
+			if (!!content.parentElement && content.parentElement.className.indexOf('hwz-ad-outstream') > -1) {
+				content.parentElement.style.display = 'none';
+			}
+		}
+		content.style.height = i + 'px';
+		i -= 5;
+	}, 1);
+}
+
+if (['interactive','complete'].indexOf(document.readyState) > -1) {
+	uw_debuglog('dom ready!');
+	activatePrebid();
+	hwzGamInit();
+} else {
+	uw_debuglog('dom not ready!');
+	document.addEventListener('DOMContentLoaded', function(event) {
+		uw_debuglog('dom finally ready!');
+		activatePrebid();
+		hwzGamInit();
+	});
+}
